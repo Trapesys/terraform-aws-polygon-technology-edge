@@ -142,19 +142,17 @@ resource "null_resource" "download_package" {
   }
 }
 
-module "lambda" {
+module "genesis_lambda" {
   source  = "terraform-aws-modules/lambda/aws"
-  version = ">=3.3.1"
+  version = "4.0.1"
 
   function_name = var.lambda_function_name
   description   = "Lambda function used to initialize chain and generate genesis.json"
-  handler       = "main"
-  runtime       = "go1.x"
   timeout       = 20
   memory_size   = 256
 
-  create_package         = false
-  local_existing_package = data.null_data_source.downloaded_package.outputs["filename"]
+  # Docker Configuration
+  docker_image = var.polygon_edge_image
 
   attach_policy_jsons    = true
   number_of_policy_jsons = 2
