@@ -1,3 +1,16 @@
+locals {
+  secrets_manager_config = {
+    token      = ""
+    server_url = ""
+    type       = "aws-ssm"
+    namespace  = "admin"
+    extra = {
+      region             = data.aws_region.current.name
+      ssm-parameter-path = var.assm_path
+    }
+  }
+}
+
 data "aws_ami" "ubuntu_20_04" {
   most_recent = true
 
@@ -14,31 +27,45 @@ data "aws_ami" "ubuntu_20_04" {
   owners = ["099720109477"]
 }
 
-data "cloudinit_config" "main" {
+data "aws_region" "current" {}
+data "aws_caller_identity" "current" {}
+data "template_file" "server" {
+  template = file("${path.module}/templates/cloud-config.yaml.tftpl")
+  vars = {
+    aws_region       = data.aws_region.current.name
+    polygon_edge_dir = var.polygon_edge_dir
+    ebs_device       = var.ebs_device
+    chain_volume_id  = aws_ebs_volume.chain_data.id
+    node_name        = var.node_name
+    total_nodes      = var.total_nodes
+    s3_bucket_name   = var.s3_bucket_name
+
+    secrets_manager_config = jsonencode(merge(local.secrets_manager_config, { name = var.node_name }))
+    genesis_json           = var.genesis_json != "" ? jsonencode(jsondecode(file(var.genesis_json))) : ""
+
+    premine         = var.premine
+    chain_name      = var.chain_name
+    chain_id        = var.chain_id
+    pos             = var.pos
+    epoch_size      = var.epoch_size
+    block_gas_limit = var.block_gas_limit
+
+    polygon_edge_dir   = var.polygon_edge_dir
+    s3_bucket_name     = var.s3_bucket_name
+    prometheus_address = var.prometheus_address
+    block_gas_target   = var.block_gas_target
+    nat_address        = var.nat_address
+    dns_name           = var.dns_name
+    price_limit        = var.price_limit
+    max_slots          = var.max_slots
+    block_time         = var.block_time
+  }
+}
+data "template_cloudinit_config" "server" {
   gzip          = true
   base64_encode = true
   part {
     content_type = "text/cloud-config"
-    content = templatefile("${path.module}/templates/cloud-config.yaml", {
-      polygon_edge_dir     = var.polygon_edge_dir
-      ebs_device           = var.ebs_device
-      node_name            = var.node_name
-      assm_path            = var.assm_path
-      assm_region        = var.assm_region
-      total_nodes          = var.total_nodes
-      s3_bucket_name       = var.s3_bucket_name
-      s3_key_name          = var.s3_key_name
-      lambda_function_name = var.lambda_function_name
-
-      premine             = var.premine
-      chain_name          = var.chain_name
-      chain_id            = var.chain_id
-      pos                 = var.pos
-      epoch_size          = var.epoch_size
-      block_gas_limit     = var.block_gas_limit
-      max_validator_count = var.max_validator_count
-      min_validator_count = var.min_validator_count
-      consensus           = var.consensus
-    })
+    content      = data.template_file.server.rendered
   }
 }

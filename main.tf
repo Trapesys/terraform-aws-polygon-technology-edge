@@ -54,17 +54,15 @@ module "security" {
   region                   = var.region
   internal_sec_gr_name_tag = var.internal_sec_gr_name_tag
   alb_sec_gr_name_tag      = var.alb_sec_gr_name_tag
-  lambda_function_name     = var.lambda_function_name
 }
 
-module "instances" {
-  source = "./modules/instances"
+module "validator_ec2" {
+  source = "./modules/validator-ec2"
 
   for_each = local.private_azs
 
   internal_subnet             = local.private_subnets[each.key]
   internal_sec_groups         = [module.security.internal_sec_group_id]
-  user_data_base64            = module.user_data[each.key].polygon_edge_node
   instance_iam_role           = module.security.ec2_to_assm_iam_policy_id
   az                          = each.value
   instance_type               = var.instance_type
@@ -74,9 +72,37 @@ module "instances" {
   chain_data_ebs_volume_size  = var.chain_data_ebs_volume_size
   chain_data_ebs_name_tag     = var.chain_data_ebs_name_tag
 
-  depends_on = [module.lambda]
+  node_name      = "${var.node_name_prefix}-${each.value}"
+  s3_bucket_name = module.s3.s3_bucket_id
+  total_nodes    = length(module.vpc.private_subnet_attributes_by_az)
+  genesis_json   = var.genesis_json
+
+  polygon_edge_dir = var.polygon_edge_dir
+  ebs_device       = var.ebs_device
+  assm_path        = var.ssm_parameter_id
+
+  # Server configuration
+
+  max_slots          = var.max_slots
+  block_time         = var.block_time
+  prometheus_address = var.prometheus_address
+  block_gas_target   = var.block_gas_target
+  nat_address        = var.nat_address
+  dns_name           = var.dns_name
+  price_limit        = var.price_limit
+
+  #  # Chain configuration
+  premine         = var.premine
+  chain_name      = var.chain_name
+  chain_id        = var.chain_id
+  block_gas_limit = var.block_gas_limit
+  epoch_size      = var.epoch_size
+  pos             = var.pos
+
+
 }
 
+/*
 module "user_data" {
   source = "./modules/user-data"
 
@@ -108,10 +134,7 @@ module "user_data" {
   chain_id             = var.chain_id
   block_gas_limit      = var.block_gas_limit
   epoch_size           = var.epoch_size
-  consensus            = var.consensus
   lambda_function_name = var.lambda_function_name
-  max_validator_count  = var.max_validator_count
-  min_validator_count  = var.min_validator_count
   pos                  = var.pos
 
 }
@@ -129,8 +152,7 @@ module "alb" {
   nodes_alb_name_tag                = var.nodes_alb_name_tag
   nodes_alb_targetgroup_name_prefix = var.nodes_alb_targetgroup_name_prefix
 }
-
-
+*/
 
 resource "null_resource" "download_package" {
   triggers = {
@@ -140,52 +162,4 @@ resource "null_resource" "download_package" {
   provisioner "local-exec" {
     command = "curl -L -o ${local.downloaded} ${local.package_url}"
   }
-}
-
-module "genesis_lambda" {
-  source  = "terraform-aws-modules/lambda/aws"
-  version = "4.0.1"
-
-  function_name = var.lambda_function_name
-  description   = "Lambda function used to initialize chain and generate genesis.json"
-  timeout       = 20
-  memory_size   = 256
-
-  # Docker Configuration
-  docker_image = var.polygon_edge_image
-
-  attach_policy_jsons    = true
-  number_of_policy_jsons = 2
-  policy_jsons = [jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Effect = "Allow",
-        Action = [
-          "s3:PutObject",
-          "s3:GetObject",
-          "s3:ListBucket"
-        ],
-        Resource = [
-          "arn:aws:s3:::${module.s3.s3_bucket_id}",
-          "arn:aws:s3:::${module.s3.s3_bucket_id}/*"
-        ]
-      }
-    ]
-    }), jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Effect = "Allow",
-        Action = [
-          "ssm:GetParameter",
-          "ssm:GetParameters",
-          "ssm:GetParametersByPath"
-        ],
-        Resource = [
-          "arn:aws:ssm:${var.region}:${var.account_id}:parameter/${var.ssm_parameter_id}/*"
-        ]
-      }
-    ]
-  })]
 }

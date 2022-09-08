@@ -16,6 +16,16 @@ resource "aws_iam_role_policy" "polygon_edge_node" {
       },
       {
         Action = [
+          "ec2:AttachVolume",
+          "ec2:DescribeVolumes",
+        ]
+        Effect = "Allow"
+        Resource = [
+          "*"
+        ]
+      },
+      {
+        Action = [
           "s3:PutObject",
           "s3:GetObject",
           "s3:DeleteObject"
@@ -27,12 +37,7 @@ resource "aws_iam_role_policy" "polygon_edge_node" {
         Action   = ["s3:ListBucket"]
         Effect   = "Allow",
         Resource = [format("arn:aws:s3:::%s", var.s3_shared_bucket_name)]
-      },
-      {
-        Action   = ["lambda:InvokeFunction"]
-        Effect   = "Allow"
-        Resource = format("arn:aws:lambda:%s:%s:function:%s", var.region, var.account_id, var.lambda_function_name)
-      },
+      }
     ]
   })
 }

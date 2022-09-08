@@ -1,0 +1,179 @@
+runcmd:
+  - /bin/bash /tmp/polygon-edge.sh
+
+write_files:
+  - path: ${polygon_edge_dir}/secretsManagerConfig.json
+    content : |
+      ${secrets_manager_config}
+  - path: ${polygon_edge_dir}/genesis.json
+    content : | 
+      ${genesis_json}
+  - path: /etc/systemd/system/polygon-edge.service
+    content: |
+      [Unit]
+      Description=Polygon Edge Server
+      After=network.target polygon_genesis.target
+      Wants=polygon_genesis.target
+      StartLimitIntervalSec=0
+
+      [Service]
+      Type=simple
+      Restart=always
+      RestartSec=10
+      User=ubuntu
+      StandardOutput=syslog
+      StandardError=file:${polygon_edge_dir}/logs/edge-server.log
+      ExecStartPre=/bin/bash -c "sudo rm ${polygon_edge_dir}/logs/edge-server.log"
+      ExecStart=/usr/local/bin/polygon-edge server --data-dir ${polygon_edge_dir}/data --chain ${polygon_edge_dir}/genesis.json --libp2p 0.0.0.0:1478 --grpc-address 0.0.0.0:9632 --secrets-config ${polygon_edge_dir}/secretsManagerConfig.json --seal SERVER_OPTIONS
+
+      [Install]
+      WantedBy=multi-user.target
+  - path: /tmp/polygon-edge.sh
+    permissions: '0755'
+    content: |
+        #!/bin/bash
+        POLYGON_FOLDER="${polygon_edge_dir}"
+        LOGS_FOLDER="${polygon_edge_dir}/logs"
+        DATA_DIR="${polygon_edge_dir}/data"
+        EBS_DEVICE="${ebs_device}"
+        SECRETS_FILE="$POLYGON_FOLDER/secretsManagerConfig.json"
+        GENESIS_FILE="$DATA_DIR/genesis.json"
+        LOG_FILE="${polygon_edge_dir}/logs/edge-server.log"
+        LINUX_USER="ubuntu"
+
+        # create central dir that will hold chain data and logs
+        if [ ! -d "$POLYGON_FOLDER" ];
+        then
+        mkdir "$POLYGON_FOLDER"
+        fi
+        # crate logs dir
+        if [ ! -d "$LOGS_FOLDER" ];
+        then
+        mkdir "$LOGS_FOLDER"
+        fi
+
+        # Gets the instance ID for attachment later
+        TOKEN=`curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600"`
+        INSTANCE_ID=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/instance-id)
+
+        # install awscli so that we can fetch genesis.json
+        sudo apt update && sudo apt install -y awscli
+        aws ec2 attach-volume --volume-id ${chain_volume_id} --device /dev/sda2 --instance-id "$INSTANCE_ID" --region ${aws_region}
+
+        echo "----------- Script starting on :$(date) ----------------" >> "$LOG_FILE"
+        ## Check if data directory already exists
+        if [ -d "$DATA_DIR" ];
+        then
+                echo "$DATA_DIR direcotory is already created. Skipping directory creation..." >> "$LOG_FILE"
+        else
+                ERR=$(mkdir "$DATA_DIR" 2>&1 > /dev/null)
+                [ $? -eq 0 ] && echo "Data directory created!" >> "$LOG_FILE" || echo "Directory creation failed! Error: $ERR" >> "$LOG_FILE"
+        fi
+
+        # Wait for the system to fully boot before attemting to mount the EBS
+        counter=0
+        while [ ! -b "$EBS_DEVICE" ]; 
+        do
+            sleep 10
+            counter=$((counter + 1))
+            if [ $counter -ge 30 ]; 
+            then
+                echo "Could not initialize $EBS_DEVICE for more than 5 minutes. Exiting ...">> "$LOG_FILE"
+                exit 1
+            fi
+        done
+
+        # Check if EBS storage exists
+        if [ -b "$EBS_DEVICE" ];
+        then
+                # Check if we already have a filesystem on $EBS_DEVICE. If not create one.
+                if [[ $(file -s "$EBS_DEVICE") == "$EBS_DEVICE: data" ]];
+                then
+                        ERR=$(mkfs -t xfs "$EBS_DEVICE" 2>&1 > /dev/null)
+                        [ $? -eq 0 ] && echo "EBS volume successfuly formated" >> "$LOG_FILE" || echo "Error formating EBS volume. ERR: $ERR" >> "$LOG_FILE"
+                else
+                        echo "$EBS_DEVICE already has a file system! Skipping... ">> "$LOG_FILE"
+                fi
+                # If block ebs device exists and it has a filesystem, check if it is mounted and mount if it is not already mounted
+                if grep -qs "$EBS_DEVICE" /proc/mounts;
+                then
+                        echo "EBS Volume already mounted. Skipping..." >> "$LOG_FILE"
+                else
+                        # Mount EBS volume
+                        mount "$EBS_DEVICE" "$DATA_DIR"
+                        [ $? -eq 0 ] && echo "EBS Volume successfuly mounted!" >> "$LOG_FILE"
+                        ## Edit fstab
+                        echo "$EBS_DEVICE   $DATA_DIR    xfs     defaults,nofail     0 2" >> /etc/fstab
+                        [ $? -eq 0 ] && echo "Fstab successfuly edited. EBS Volume added." >> "$LOG_FILE" || echo "Fstab EBS volume edit failed!" >> "$LOG_FILE"
+                        ## Set right permissions for ubuntu user
+                        chown -R "$LINUX_USER". "$DATA_DIR"
+                        [ $? -eq 0 ] && echo "User permissions on $DATA_DIR set..." >> $LOG_FILE || echo "Could not set $DATA_DIR permissions!"
+                fi
+        else
+                echo "No EBS Volume detected! Check if it is attached and/or if it is mounted on $EBS_DEVICE" >> "$LOG_FILE"
+        fi
+
+        # get polygon-edge binary s3 bucket releases
+        mkdir /tmp/polygon-edge
+        aws s3 cp s3://${s3_bucket_name}/polygon-edge.tar.gz /tmp/polygon-edge
+        tar -xvf /tmp/polygon-edge/polygon-edge.tar.gz -C /tmp/polygon-edge
+        sudo mv /tmp/polygon-edge/polygon-edge /usr/local/bin/
+        rm -R /tmp/polygon-edge
+
+        chown -R "$LINUX_USER". "$POLYGON_FOLDER"
+
+        echo "ALL DONE!" >> "$LOG_FILE"
+        echo "-------- Finished on: $(date)  ----------" >> "$LOG_FILE"
+
+        echo "--------------------------------------------------------------" >> "$LOG_FILE"
+
+        # enable Prometheus API
+        if [ "${prometheus_address}" != "" ]; then
+          prometheus="--prometheus ${prometheus_address}"
+        fi
+
+        # set block gas limit
+        if [ "${block_gas_target}" != "" ]; then
+          block_gas_target="--block-gas-target ${block_gas_target}"
+        fi
+
+        # set nated address
+        if [ "${nat_address}" != "" ]; then
+         nat="--nat ${nat_address}"
+        fi
+
+        # set dns name
+        if [ "${dns_name}" != "" ]; then
+         dns_name="--dns ${dns_name}"
+        fi
+
+        # set price limit
+        if [ "${price_limit}" != "" ]; then
+         price_limit="--price-limit ${price_limit}"
+        fi
+
+        # set max slots
+        if [ "${max_slots}" != "" ]; then
+         max_slots="--max-slots ${max_slots}"
+        fi
+
+        # set block time in seconds
+        if [ "${block_time}" != "" ]; then
+          block_time="--block-time ${block_time}"
+        fi
+
+        echo "Parsing service arguments" >> "$LOG_FILE"
+        # set these parameters in service file
+        sed -i "s/SERVER_OPTIONS/$prometheus $block_gas_target $nat $dns $price_limit $max_slots $block_time/g" /etc/systemd/system/polygon-edge.service
+
+        # change ownership of the polygon folder to ubuntu user
+        sudo chown -R ubuntu ${polygon_edge_dir}
+
+        # Enable polygon-edge on startup
+        sudo /usr/bin/systemctl enable polygon-edge.service
+
+        # Start polygon-edge service
+        sudo /usr/bin/systemctl start polygon-edge.service 
+        
+        echo "--------------------------------------------------------------" >> "$LOG_FILE"
+        exit 0

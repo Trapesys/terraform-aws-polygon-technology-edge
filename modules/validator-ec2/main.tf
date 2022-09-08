@@ -1,10 +1,14 @@
 # validator autoscaling group
 resource "aws_autoscaling_group" "node" {
-  name_prefix       = "pedge-vnode-"
-  desired_capacity  = 1
-  max_size          = 1
-  min_size          = 1
-  availability_zone = var.az
+  name_prefix = "pedge-vnode-"
+  lifecycle {
+    ignore_changes = [
+    ]
+  }
+  desired_capacity   = 1
+  max_size           = 1
+  min_size           = 0
+  availability_zones = [var.az]
   launch_template {
     id      = aws_launch_template.node.id
     version = "$Latest"
@@ -12,9 +16,14 @@ resource "aws_autoscaling_group" "node" {
 
   instance_refresh {
     strategy = "Rolling"
-    preferences = {
+    preferences {
       min_healthy_percentage = 0
     }
+  }
+  tag {
+    key                 = "Name"
+    value               = var.node_name
+    propagate_at_launch = true
   }
 }
 
@@ -23,9 +32,7 @@ resource "aws_launch_template" "node" {
   name_prefix   = "pedge-vnode-"
   image_id      = data.aws_ami.ubuntu_20_04.id
   instance_type = var.instance_type
-  user_data = templatefile("${path.module}/templates/cloud-init.yaml",
-    {
-  })
+  user_data     = data.template_cloudinit_config.server.rendered
 
   monitoring {
     enabled = var.instance_monitoring_enabled
@@ -59,7 +66,7 @@ resource "aws_ebs_volume" "chain_data" {
 }
 
 # validator node ENI
-resource "aws_network_interface" "instance_interface" {
+resource "aws_network_interface" "main" {
   subnet_id       = var.internal_subnet
   security_groups = var.internal_sec_groups
 

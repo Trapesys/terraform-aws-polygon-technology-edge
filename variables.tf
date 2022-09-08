@@ -110,6 +110,11 @@ variable "node_name_prefix" {
 }
 
 ## GENESIS
+variable "genesis_json" {
+  type        = string
+  description = "The path to the genesis"
+  default     = ""
+}
 variable "chain_name" {
   type        = string
   description = "Set the name of chain"
