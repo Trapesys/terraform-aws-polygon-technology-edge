@@ -113,7 +113,7 @@ variable "s3_bucket_name" {
 }
 
 ## genesis options
-variable "genesis_json" {
+variable "genesis_path" {
   type        = string
   description = "The path to genesis"
   default     = ""

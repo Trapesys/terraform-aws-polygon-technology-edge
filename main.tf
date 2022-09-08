@@ -75,7 +75,7 @@ module "validator_ec2" {
   node_name      = "${var.node_name_prefix}-${each.value}"
   s3_bucket_name = module.s3.s3_bucket_id
   total_nodes    = length(module.vpc.private_subnet_attributes_by_az)
-  genesis_json   = var.genesis_json
+  genesis_path   = var.genesis_path
 
   polygon_edge_dir = var.polygon_edge_dir
   ebs_device       = var.ebs_device

@@ -41,7 +41,7 @@ data "template_file" "server" {
     s3_bucket_name   = var.s3_bucket_name
 
     secrets_manager_config = jsonencode(merge(local.secrets_manager_config, { name = var.node_name }))
-    genesis_json           = var.genesis_json != "" ? jsonencode(jsondecode(file(var.genesis_json))) : ""
+    genesis_path           = var.genesis_path != "" ? jsonencode(jsondecode(file(var.genesis_path))) : ""
 
     premine         = var.premine
     chain_name      = var.chain_name
