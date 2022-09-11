@@ -56,7 +56,15 @@ variable "instance_monitor_enabled" {
   description = "Enable instance monitor for the validator node"
   default     = false
 }
-
+variable "alb_target_group_arn" {
+  type        = string
+  description = "The ALB target group arn"
+}
+variable "propagated_asg_tags" {
+  type        = map(string)
+  description = "A map of tags to propagate to the validator nodes"
+  default     = {}
+}
 
 # server options
 variable "prometheus_address" {

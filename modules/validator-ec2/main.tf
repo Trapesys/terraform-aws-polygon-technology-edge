@@ -1,18 +1,24 @@
 # validator autoscaling group
 resource "aws_autoscaling_group" "node" {
-  name_prefix = "pedge-vnode-"
+  name_prefix = "${var.node_name}-"
   lifecycle {
+    create_before_destroy = true
     ignore_changes = [
     ]
   }
-  desired_capacity   = 1
-  max_size           = 1
-  min_size           = 0
-  availability_zones = [var.az]
+  health_check_grace_period = 60
+  health_check_type         = "ELB"
+  desired_capacity          = 1
+  max_size                  = 1
+  min_size                  = 0
+  availability_zones        = [var.az]
   launch_template {
     id      = aws_launch_template.node.id
     version = "$Latest"
   }
+  target_group_arns = [
+    var.alb_target_group_arn
+  ]
 
   instance_refresh {
     strategy = "Rolling"
@@ -24,6 +30,14 @@ resource "aws_autoscaling_group" "node" {
     key                 = "Name"
     value               = var.node_name
     propagate_at_launch = true
+  }
+  dynamic "tag" {
+    for_each = var.propagated_asg_tags
+    content {
+      key                 = each.key
+      value               = each.value
+      propagate_at_launch = true
+    }
   }
 }
 
@@ -73,4 +87,10 @@ resource "aws_network_interface" "main" {
   tags = {
     Name = var.instance_interface_name_tag
   }
+}
+
+# validator ALB TG ASG Attachment
+resource "aws_autoscaling_attachment" "main" {
+  lb_target_group_arn    = var.alb_target_group_arn
+  autoscaling_group_name = aws_autoscaling_group.node.id
 }

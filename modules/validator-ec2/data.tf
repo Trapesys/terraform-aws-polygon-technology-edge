@@ -6,7 +6,7 @@ locals {
     namespace  = "admin"
     extra = {
       region             = data.aws_region.current.name
-      ssm-parameter-path = var.assm_path
+      ssm-parameter-path = "/${var.assm_path}"
     }
   }
 }

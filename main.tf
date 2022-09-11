@@ -8,12 +8,14 @@ module "vpc" {
 
   subnets = {
     public = {
-      netmask                   = 24
+      netmask = 24
+      #nat_gateway_configuration = "none"
       nat_gateway_configuration = "all_azs"
     }
 
     private = {
-      netmask      = 24
+      netmask = 24
+      #route_to_nat = false
       route_to_nat = true
     }
   }
@@ -54,6 +56,7 @@ module "security" {
   region                   = var.region
   internal_sec_gr_name_tag = var.internal_sec_gr_name_tag
   alb_sec_gr_name_tag      = var.alb_sec_gr_name_tag
+  alb_ip_whitelist         = var.alb_ip_whitelist
 }
 
 module "validator_ec2" {
@@ -77,9 +80,10 @@ module "validator_ec2" {
   total_nodes    = length(module.vpc.private_subnet_attributes_by_az)
   genesis_path   = var.genesis_path
 
-  polygon_edge_dir = var.polygon_edge_dir
-  ebs_device       = var.ebs_device
-  assm_path        = var.ssm_parameter_id
+  polygon_edge_dir     = var.polygon_edge_dir
+  ebs_device           = var.ebs_device
+  assm_path            = var.ssm_parameter_id
+  alb_target_group_arn = module.alb.alb_target_group_arn
 
   # Server configuration
 
@@ -139,27 +143,16 @@ module "user_data" {
 
 }
 
+*/
 module "alb" {
   source = "./modules/alb"
 
   public_subnets      = [for _, value in module.vpc.public_subnet_attributes_by_az : value.id]
   alb_sec_group       = module.security.jsonrpc_sec_group_id
   vpc_id              = module.vpc.vpc_attributes.id
-  node_ids            = [for _, instance in module.instances : instance.instance_id]
   alb_ssl_certificate = var.alb_ssl_certificate
 
   nodes_alb_name_prefix             = var.nodes_alb_name_prefix
   nodes_alb_name_tag                = var.nodes_alb_name_tag
   nodes_alb_targetgroup_name_prefix = var.nodes_alb_targetgroup_name_prefix
-}
-*/
-
-resource "null_resource" "download_package" {
-  triggers = {
-    downloaded = local.downloaded
-  }
-
-  provisioner "local-exec" {
-    command = "curl -L -o ${local.downloaded} ${local.package_url}"
-  }
 }

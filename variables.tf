@@ -57,6 +57,11 @@ variable "alb_sec_gr_name_tag" {
   description = "External security group name tag"
   default     = "Polygon Edge External"
 }
+variable "alb_ip_whitelist" {
+  type        = set(string)
+  description = "A set of IPs to whitelist to the ALB"
+  default     = ["0.0.0.0/0"]
+}
 
 # EC2
 variable "instance_type" {
@@ -204,6 +209,7 @@ variable "block_time" {
 variable "alb_ssl_certificate" {
   type        = string
   description = "SSL certificate ARN for JSON-RPC loadblancer"
+  default     = ""
 }
 variable "nodes_alb_name_prefix" {
   type        = string
@@ -230,4 +236,11 @@ variable "lambda_function_zip" {
   type        = string
   description = "The lambda function code in zip archive"
   default     = "https://raw.githubusercontent.com/Trapesys/polygon-edge-assm/aws-lambda/artifacts/main.zip"
+}
+
+# 
+variable "propagated_asg_tags" {
+  description = "Tags to propagate from the asg to instance"
+  type        = map(string)
+  default     = {}
 }

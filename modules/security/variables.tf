@@ -33,3 +33,9 @@ variable "alb_sec_gr_name_tag" {
   description = "The name tag for ALB security group"
 }
 
+variable "alb_ip_whitelist" {
+  type        = set(string)
+  description = "A set of IPs to whitelist to the ALB"
+}
+
+
