@@ -1,2 +1,0 @@
-ignore_templates:
-    - modules/validator-ec2/templates/cloud-config.yaml.tftpl
