@@ -21,11 +21,6 @@ variable "s3_force_destroy" {
   default     = true
   description = "Delete S3 bucket on destroy, even if the bucket is not empty"
 }
-variable "s3_key_name" {
-  type        = string
-  description = "Name of the file in S3 that will hold configuration"
-  default     = "chain-config"
-}
 
 # SECURITY
 variable "account_id" {
@@ -44,7 +39,7 @@ variable "region" {
   # must deploy in a 4 AZ region
   validation {
     condition     = contains(["us-west-2", "us-east-1", "ap-northeast-2", "ap-northeast-1"], var.region)
-    error_message = "The deployment must be done in 4 AZ region"
+    error_message = "The deployment must be done in 4 AZ region."
   }
 }
 variable "internal_sec_gr_name_tag" {
@@ -68,16 +63,6 @@ variable "instance_type" {
   default     = "t3.medium"
   type        = string
   description = "Polygon Edge nodes instance type."
-}
-variable "ebs_root_name_tag" {
-  default     = "Polygon_Edge_Root_Volume"
-  type        = string
-  description = "The name tag for the Polygon Edge instance root volume."
-}
-variable "instance_name" {
-  default     = "Polygon_Edge_Node"
-  type        = string
-  description = "The name of Polygon Edge instance"
 }
 variable "instance_interface_name_tag" {
   default     = "Polygon_Edge_Instance_Interface"
@@ -120,54 +105,7 @@ variable "genesis_path" {
   description = "The path to the genesis"
   default     = ""
 }
-variable "chain_name" {
-  type        = string
-  description = "Set the name of chain"
-  default     = ""
-}
 
-variable "chain_id" {
-  type        = string
-  description = "Set the Chain ID"
-  default     = ""
-}
-
-variable "block_gas_limit" {
-  type        = string
-  description = "Set the block gas limit"
-  default     = ""
-}
-
-variable "premine" {
-  type        = string
-  description = "Premine the accounts with the specified ammount. Format: account:ammount,account:ammount"
-}
-
-variable "epoch_size" {
-  type        = string
-  description = "Set the epoch size"
-  default     = ""
-}
-variable "consensus" {
-  type        = string
-  description = "Sets consensus protocol."
-  default     = ""
-}
-variable "max_validator_count" {
-  type        = string
-  description = "The maximum number of stakers able to join the validator set in a PoS consensus."
-  default     = ""
-}
-variable "min_validator_count" {
-  type        = string
-  description = "The minimum number of stakers needed to join the validator set in a PoS consensus."
-  default     = ""
-}
-variable "pos" {
-  type        = bool
-  description = "Use PoS IBFT consensus"
-  default     = false
-}
 # server options
 variable "prometheus_address" {
   type        = string
@@ -211,6 +149,11 @@ variable "alb_ssl_certificate" {
   description = "SSL certificate ARN for JSON-RPC loadblancer"
   default     = ""
 }
+variable "alb_insecure_jrpc" {
+  type        = bool
+  description = "Create an ALB without HTTPS Listener for JRPC"
+  default     = false
+}
 variable "nodes_alb_name_prefix" {
   type        = string
   description = "ALB name"
@@ -226,21 +169,19 @@ variable "nodes_alb_targetgroup_name_prefix" {
   description = "ALB target group name"
   default     = "jrpc-"
 }
-# LAMBDA
-variable "lambda_function_name" {
-  type        = string
-  description = "The name of the Lambda function used for chain init"
-  default     = "polygon-edge-init"
-}
-variable "lambda_function_zip" {
-  type        = string
-  description = "The lambda function code in zip archive"
-  default     = "https://raw.githubusercontent.com/Trapesys/polygon-edge-assm/aws-lambda/artifacts/main.zip"
-}
-
-# 
 variable "propagated_asg_tags" {
   description = "Tags to propagate from the asg to instance"
   type        = map(string)
   default     = {}
+}
+
+variable "enable_nat_gateway" {
+  description = "Toggles the NAT Gateways"
+  type        = bool
+  default     = true
+}
+variable "enable_validators" {
+  description = "Toggles the Validator ASG"
+  type        = bool
+  default     = true
 }

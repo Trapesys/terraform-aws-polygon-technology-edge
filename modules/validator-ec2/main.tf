@@ -6,9 +6,9 @@ resource "aws_autoscaling_group" "node" {
     ignore_changes = [
     ]
   }
-  health_check_grace_period = 60
+  health_check_grace_period = 300
   health_check_type         = "ELB"
-  desired_capacity          = 1
+  desired_capacity          = var.enable_validators ? 1 : 0
   max_size                  = 1
   min_size                  = 0
   availability_zones        = [var.az]

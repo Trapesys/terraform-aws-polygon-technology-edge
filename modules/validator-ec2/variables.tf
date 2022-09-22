@@ -1,24 +1,15 @@
-variable "instance_type" {
-  type        = string
-  description = "Polygon Edge nodes instance type. Default: t3.medium"
-}
 variable "instance_monitoring_enabled" {
   type        = string
   description = "Enable instance monitoring"
   default     = false
 }
+variable "instance_type" {
+  type        = string
+  description = "Polygon Edge nodes instance type. Default: t3.medium"
+}
 variable "az" {
   type        = string
   description = "The availability zone of the instance."
-}
-variable "ebs_root_name_tag" {
-  type        = string
-  description = "The name tag for the Polygon Edge instance root volume."
-}
-
-variable "instance_name" {
-  type        = string
-  description = "The name of Polygon Edge instance"
 }
 
 variable "internal_subnet" {
@@ -51,11 +42,6 @@ variable "instance_iam_role" {
   description = "The IAM role to attach to the instance"
 }
 
-variable "instance_monitor_enabled" {
-  type        = bool
-  description = "Enable instance monitor for the validator node"
-  default     = false
-}
 variable "alb_target_group_arn" {
   type        = string
   description = "The ALB target group arn"
@@ -119,34 +105,14 @@ variable "s3_bucket_name" {
   type        = string
   description = "The name of the S3 bucket that holds genesis.json."
 }
-
 ## genesis options
 variable "genesis_path" {
   type        = string
   description = "The path to genesis"
   default     = ""
 }
-variable "chain_name" {
-  type        = string
-  description = "Set the name of chain"
-}
-variable "chain_id" {
-  type        = string
-  description = "Set the Chain ID"
-}
-variable "block_gas_limit" {
-  type        = string
-  description = "Set the block gas limit"
-}
-variable "premine" {
-  type        = string
-  description = "Premine the accounts with the specified ammount."
-}
-variable "epoch_size" {
-  type        = string
-  description = "Set the epoch size"
-}
-variable "pos" {
+variable "enable_validators" {
   type        = bool
-  description = "Deploy with PoS consensus"
+  description = "Toggles the Validator ASG to 1 or 0"
+  default     = true
 }

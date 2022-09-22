@@ -3,10 +3,10 @@ runcmd:
 
 write_files:
   - path: ${polygon_edge_dir}/secretsManagerConfig.json
-    content : |
+    content: |
       ${secrets_manager_config}
   - path: ${polygon_edge_dir}/genesis.json
-    content : | 
+    content: | 
       ${genesis_path}
   - path: /etc/systemd/system/polygon-edge.service
     content: |

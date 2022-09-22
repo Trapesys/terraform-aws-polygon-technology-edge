@@ -33,7 +33,7 @@ resource "aws_lb_listener" "polygon_nodes_http" {
   protocol          = "HTTP"
 
   dynamic "default_action" {
-    for_each = toset(var.alb_ssl_certificate == "" ? ["enabled"] : [])
+    for_each = toset(var.alb_insecure_jrpc ? ["enabled"] : [])
     content {
       type             = "forward"
       target_group_arn = aws_lb_target_group.polygon_nodes.arn
@@ -41,7 +41,7 @@ resource "aws_lb_listener" "polygon_nodes_http" {
   }
 
   dynamic "default_action" {
-    for_each = toset(var.alb_ssl_certificate != "" ? ["enabled"] : [])
+    for_each = toset(var.alb_insecure_jrpc ? [] : ["enabled"])
     content {
       type = "redirect"
 
@@ -55,7 +55,7 @@ resource "aws_lb_listener" "polygon_nodes_http" {
 }
 # Set https listener on ALB
 resource "aws_lb_listener" "polygon_nodes_https" {
-  for_each          = toset(var.alb_ssl_certificate != "" ? ["enabled"] : [])
+  for_each          = toset(var.alb_insecure_jrpc ? [] : ["enabled"])
   load_balancer_arn = aws_lb.polygon_nodes.arn
   port              = 443
   protocol          = "HTTPS"

@@ -22,14 +22,14 @@ variable "vpc_id" {
   type        = string
   description = "VPC id"
 }
-/*
-variable "node_ids" {
-  type        = list(string)
-  description = "The ids of the nodes to place in targetgroup"
+variable "alb_insecure_jrpc" {
+  type        = bool
+  description = "Create an ALB without HTTPS Listener for JRPC"
+  default     = false
 }
-*/
 variable "alb_ssl_certificate" {
   type        = string
   description = "The SSL certificate ARN for JSON-RPC load balancer"
   default     = ""
 }
+
