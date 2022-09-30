@@ -43,14 +43,21 @@ module "s3" {
   force_destroy = var.s3_force_destroy
 }
 
+module "datadog_key" {
+  source            = "./modules/datadog"
+  for_each          = toset(var.datadog_api_key != "" ? ["enabled"] : [])
+  datadog_api_key   = var.datadog_api_key
+  instance_iam_role = module.security.ec2_to_assm_iam_policy_id
+}
+
 module "security" {
   source = "./modules/security"
 
   vpc_id                   = module.vpc.vpc_attributes.id
-  account_id               = var.account_id
+  account_id               = data.aws_caller_identity.current.account_id
   s3_shared_bucket_name    = module.s3.s3_bucket_id
   ssm_parameter_id         = var.ssm_parameter_id
-  region                   = var.region
+  region                   = data.aws_region.current.name
   internal_sec_gr_name_tag = var.internal_sec_gr_name_tag
   alb_sec_gr_name_tag      = var.alb_sec_gr_name_tag
   alb_ip_whitelist         = var.alb_ip_whitelist
@@ -92,6 +99,9 @@ module "validator_ec2" {
 
   propagated_asg_tags = var.propagated_asg_tags
   enable_validators   = var.enable_validators
+
+  # datadog
+  datadog_api_key_ssm_param_name = var.datadog_api_key != "" ? module.datadog_key["enabled"].datadog_api_key_ssm_param_name : ""
 }
 
 module "alb" {

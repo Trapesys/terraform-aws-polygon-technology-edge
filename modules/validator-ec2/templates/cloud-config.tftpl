@@ -112,6 +112,14 @@ write_files:
         else
                 echo "No EBS Volume detected! Check if it is attached and/or if it is mounted on $EBS_DEVICE" >> "$LOG_FILE"
         fi
+        
+
+        %{ if dd_enabled }
+        # install datadog agent
+        wget -O ddinstall.sh https://s3.amazonaws.com/dd-agent/scripts/install_script.sh
+        export DD_API_KEY=$(aws --region ${aws_region} ssm get-parameters --names ${datadog_api_key_ssm_param} --with-decryption --query Parameters[].Value --output text)
+        bash ./ddinstall.sh
+        %{ endif }
 
         # get polygon-edge binary s3 bucket releases
         mkdir /tmp/polygon-edge

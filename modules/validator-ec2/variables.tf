@@ -116,3 +116,9 @@ variable "enable_validators" {
   description = "Toggles the Validator ASG to 1 or 0"
   default     = true
 }
+
+variable "datadog_api_key_ssm_param_name" {
+  description = "The Datadog API key ssm parameter name"
+  type        = string
+  default     = "dd-api-key-for-ssm"
+}

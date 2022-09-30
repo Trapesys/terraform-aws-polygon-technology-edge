@@ -11,6 +11,7 @@ locals {
   }
 }
 
+
 data "aws_ami" "ubuntu_20_04" {
   most_recent = true
 
@@ -43,18 +44,19 @@ data "template_cloudinit_config" "server" {
         total_nodes      = var.total_nodes
         s3_bucket_name   = var.s3_bucket_name
 
-        secrets_manager_config = jsonencode(merge(local.secrets_manager_config, { name = var.node_name }))
-        genesis_path           = var.genesis_path != "" ? jsonencode(jsondecode(file(var.genesis_path))) : ""
-
-        polygon_edge_dir   = var.polygon_edge_dir
-        s3_bucket_name     = var.s3_bucket_name
-        prometheus_address = var.prometheus_address
-        block_gas_target   = var.block_gas_target
-        nat_address        = var.nat_address
-        dns_name           = var.dns_name
-        price_limit        = var.price_limit
-        max_slots          = var.max_slots
-        block_time         = var.block_time
+        secrets_manager_config    = jsonencode(merge(local.secrets_manager_config, { name = var.node_name }))
+        genesis_path              = var.genesis_path != "" ? jsonencode(jsondecode(file(var.genesis_path))) : ""
+        datadog_api_key_ssm_param = var.datadog_api_key_ssm_param_name
+        dd_enabled                = var.datadog_api_key_ssm_param_name == "" ? false : true
+        polygon_edge_dir          = var.polygon_edge_dir
+        s3_bucket_name            = var.s3_bucket_name
+        prometheus_address        = var.prometheus_address
+        block_gas_target          = var.block_gas_target
+        nat_address               = var.nat_address
+        dns_name                  = var.dns_name
+        price_limit               = var.price_limit
+        max_slots                 = var.max_slots
+        block_time                = var.block_time
     })
   }
 }

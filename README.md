@@ -93,6 +93,7 @@ process itself.
 | Name | Source | Version |
 |------|--------|---------|
 | <a name="module_alb"></a> [alb](#module\_alb) | ./modules/alb | n/a |
+| <a name="module_datadog_key"></a> [datadog\_key](#module\_datadog\_key) | ./modules/datadog | n/a |
 | <a name="module_s3"></a> [s3](#module\_s3) | terraform-aws-modules/s3-bucket/aws | >= 3.3.0 |
 | <a name="module_security"></a> [security](#module\_security) | ./modules/security | n/a |
 | <a name="module_validator_ec2"></a> [validator\_ec2](#module\_validator\_ec2) | ./modules/validator-ec2 | n/a |
@@ -103,12 +104,13 @@ process itself.
 | Name | Type |
 |------|------|
 | [aws_availability_zones.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/availability_zones) | data source |
+| [aws_caller_identity.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/caller_identity) | data source |
+| [aws_region.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/region) | data source |
 
 ## Inputs
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_account_id"></a> [account\_id](#input\_account\_id) | The AWS account number | `string` | n/a | yes |
 | <a name="input_alb_insecure_jrpc"></a> [alb\_insecure\_jrpc](#input\_alb\_insecure\_jrpc) | Create an ALB without HTTPS Listener for JRPC | `bool` | `false` | no |
 | <a name="input_alb_ip_whitelist"></a> [alb\_ip\_whitelist](#input\_alb\_ip\_whitelist) | A set of IPs to whitelist to the ALB | `set(string)` | <pre>[<br>  "0.0.0.0/0"<br>]</pre> | no |
 | <a name="input_alb_sec_gr_name_tag"></a> [alb\_sec\_gr\_name\_tag](#input\_alb\_sec\_gr\_name\_tag) | External security group name tag | `string` | `"Polygon Edge External"` | no |
@@ -117,6 +119,7 @@ process itself.
 | <a name="input_block_time"></a> [block\_time](#input\_block\_time) | Set block production time in seconds | `string` | `""` | no |
 | <a name="input_chain_data_ebs_name_tag"></a> [chain\_data\_ebs\_name\_tag](#input\_chain\_data\_ebs\_name\_tag) | The name of the chain data EBS volume. | `string` | `"Polygon_Edge_chain_data_volume"` | no |
 | <a name="input_chain_data_ebs_volume_size"></a> [chain\_data\_ebs\_volume\_size](#input\_chain\_data\_ebs\_volume\_size) | The size of the chain data EBS volume. | `number` | `30` | no |
+| <a name="input_datadog_api_key"></a> [datadog\_api\_key](#input\_datadog\_api\_key) | The Datadog api key | `string` | `""` | no |
 | <a name="input_dns_name"></a> [dns\_name](#input\_dns\_name) | Sets the DNS name for the network package | `string` | `""` | no |
 | <a name="input_ebs_device"></a> [ebs\_device](#input\_ebs\_device) | The ebs device path. Defined when creating EBS volume. | `string` | `"/dev/nvme1n1"` | no |
 | <a name="input_enable_nat_gateway"></a> [enable\_nat\_gateway](#input\_enable\_nat\_gateway) | Toggles the NAT Gateways | `bool` | `true` | no |
@@ -135,7 +138,6 @@ process itself.
 | <a name="input_price_limit"></a> [price\_limit](#input\_price\_limit) | Sets minimum gas price limit to enforce for acceptance into the pool | `string` | `""` | no |
 | <a name="input_prometheus_address"></a> [prometheus\_address](#input\_prometheus\_address) | Enable Prometheus API | `string` | `""` | no |
 | <a name="input_propagated_asg_tags"></a> [propagated\_asg\_tags](#input\_propagated\_asg\_tags) | Tags to propagate from the asg to instance | `map(string)` | `{}` | no |
-| <a name="input_region"></a> [region](#input\_region) | AWS region | `string` | `"us-west-2"` | no |
 | <a name="input_s3_bucket_prefix"></a> [s3\_bucket\_prefix](#input\_s3\_bucket\_prefix) | Name prefix for new S3 bucket | `string` | `"polygon-edge-shared-"` | no |
 | <a name="input_s3_force_destroy"></a> [s3\_force\_destroy](#input\_s3\_force\_destroy) | Delete S3 bucket on destroy, even if the bucket is not empty | `bool` | `true` | no |
 | <a name="input_ssm_parameter_id"></a> [ssm\_parameter\_id](#input\_ssm\_parameter\_id) | The id that will be used for storing and fetching from SSM Parameter Store | `string` | `"polygon-edge-validators"` | no |

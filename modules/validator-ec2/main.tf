@@ -94,3 +94,5 @@ resource "aws_autoscaling_attachment" "main" {
   lb_target_group_arn    = var.alb_target_group_arn
   autoscaling_group_name = aws_autoscaling_group.node.id
 }
+
+
