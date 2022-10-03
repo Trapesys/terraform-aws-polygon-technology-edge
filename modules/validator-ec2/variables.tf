@@ -122,3 +122,8 @@ variable "datadog_api_key_ssm_param_name" {
   type        = string
   default     = "dd-api-key-for-ssm"
 }
+variable "datadog_environment_tag" {
+  description = "The Datadog environment tag"
+  type        = string
+  default     = "devnet"
+}

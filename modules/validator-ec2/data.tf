@@ -48,6 +48,7 @@ data "template_cloudinit_config" "server" {
         genesis_path              = var.genesis_path != "" ? jsonencode(jsondecode(file(var.genesis_path))) : ""
         datadog_api_key_ssm_param = var.datadog_api_key_ssm_param_name
         dd_enabled                = var.datadog_api_key_ssm_param_name == "" ? false : true
+        edge_env                  = var.datadog_environment_tag
         polygon_edge_dir          = var.polygon_edge_dir
         s3_bucket_name            = var.s3_bucket_name
         prometheus_address        = var.prometheus_address

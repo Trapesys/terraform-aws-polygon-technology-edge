@@ -24,10 +24,44 @@ write_files:
       StandardOutput=syslog
       StandardError=file:${polygon_edge_dir}/logs/edge-server.log
       ExecStartPre=/bin/bash -c "sudo rm ${polygon_edge_dir}/logs/edge-server.log"
-      ExecStart=/usr/local/bin/polygon-edge server --data-dir ${polygon_edge_dir}/data --chain ${polygon_edge_dir}/genesis.json --libp2p 0.0.0.0:1478 --grpc-address 0.0.0.0:9632 --secrets-config ${polygon_edge_dir}/secretsManagerConfig.json --seal SERVER_OPTIONS
+      ExecStart=/usr/local/bin/polygon-edge server --data-dir ${polygon_edge_dir}/data --chain ${polygon_edge_dir}/genesis.json --libp2p 0.0.0.0:1478 --grpc-address 0.0.0.0:9632 --prometheus 0.0.0.0:8088 --secrets-config ${polygon_edge_dir}/secretsManagerConfig.json --seal SERVER_OPTIONS
 
       [Install]
       WantedBy=multi-user.target
+
+%{ if dd_enabled }
+  - path: /etc/datadog-agent/conf.d/openmetrics.d/conf.yaml
+    content: |
+      instances:
+        - prometheus_url: 'http://localhost:8088/metrics'
+          namespace: polygon-edge
+          metrics: 
+            - '*'
+          service: polygon-edge
+          tags:
+            - 'version:<EDGE_VERSION>'
+            - 'env:${edge_env}'
+  - path: /etc/datadog-agent/conf.d/process.d/conf.yaml
+    content: |
+      instances:
+        - name: polygon-edge
+          service: polygon-edge
+          search_string:
+            - polygon-edge
+          tags:
+            - 'version:<EDGE_VERSION>'
+            - 'env:${edge_env}
+  - path: /etc/datadog-agent/conf.d/polygon-edge.d/conf.yaml
+    content: |
+      logs:
+        - type: file
+          path: /home/ubuntu/polygon/logs/edge-server.log
+          service: polygon-edge
+          source: polygon-edge
+          tags:
+            - 'version:<EDGE_VERSION>'
+            - 'env:${edge_env}
+%{ endif }
   - path: /tmp/polygon-edge.sh
     permissions: '0755'
     content: |
@@ -112,14 +146,7 @@ write_files:
         else
                 echo "No EBS Volume detected! Check if it is attached and/or if it is mounted on $EBS_DEVICE" >> "$LOG_FILE"
         fi
-        
 
-        %{ if dd_enabled }
-        # install datadog agent
-        wget -O ddinstall.sh https://s3.amazonaws.com/dd-agent/scripts/install_script.sh
-        export DD_API_KEY=$(aws --region ${aws_region} ssm get-parameters --names ${datadog_api_key_ssm_param} --with-decryption --query Parameters[].Value --output text)
-        bash ./ddinstall.sh
-        %{ endif }
 
         # get polygon-edge binary s3 bucket releases
         mkdir /tmp/polygon-edge
@@ -127,6 +154,22 @@ write_files:
         tar -xvf /tmp/polygon-edge/polygon-edge.tar.gz -C /tmp/polygon-edge
         sudo mv /tmp/polygon-edge/polygon-edge /usr/local/bin/
         rm -R /tmp/polygon-edge
+
+        %{ if dd_enabled }
+        sed -i "s/<EDGE_VERSION>/$(polygon-edge version | grep 'Release version' | awk '{ print $4 }')/g" /etc/datadog-agent/conf.d/openmetrics.d/conf.yaml
+        sed -i "s/<EDGE_VERSION>/$(polygon-edge version | grep 'Release version' | awk '{ print $4 }')/g" /etc/datadog-agent/conf.d/polygon-edge.d/conf.yaml
+        sed -i "s/<EDGE_VERSION>/$(polygon-edge version | grep 'Release version' | awk '{ print $4 }')/g" /etc/datadog-agent/conf.d/process.d/conf.yaml
+        export DD_HOST_TAGS="service:polygon-edge,env:${edge_env},version:$(polygon-edge version | grep 'Release version' | awk '{ print $4 }')"
+        # install datadog agent
+        wget -O ddinstall.sh https://s3.amazonaws.com/dd-agent/scripts/install_script.sh
+        export DD_API_KEY=$(aws --region ${aws_region} ssm get-parameters --names ${datadog_api_key_ssm_param} --with-decryption --query Parameters[].Value --output text)
+        bash ./ddinstall.sh
+
+        echo 'collect_ec2_tags_use_imds: true' >> /etc/datadog-agent/datadog.yaml
+        echo 'process_config:' >> /etc/datadog-agent/datadog.yaml
+        echo '  process_collection:' >> /etc/datadog-agent/datadog.yaml
+        echo '    enabled: true' >> /etc/datadog-agent/datadog.yaml
+        %{ endif }
 
         chown -R "$LINUX_USER". "$POLYGON_FOLDER"
 
