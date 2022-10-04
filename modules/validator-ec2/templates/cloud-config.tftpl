@@ -21,6 +21,7 @@ write_files:
       Restart=always
       RestartSec=10
       User=ubuntu
+      Environment=DD_PROFILING_ENABLED=true
       StandardOutput=syslog
       StandardError=file:${polygon_edge_dir}/logs/edge-server.log
       ExecStartPre=/bin/bash -c "sudo rm ${polygon_edge_dir}/logs/edge-server.log"
@@ -40,6 +41,7 @@ write_files:
           service: polygon-edge
           tags:
             - 'version:<EDGE_VERSION>'
+            - 'commit:<EDGE_COMMIT_SHA>'
             - 'env:${edge_env}'
   - path: /etc/datadog-agent/conf.d/process.d/conf.yaml
     content: |
@@ -50,6 +52,7 @@ write_files:
             - polygon-edge
           tags:
             - 'version:<EDGE_VERSION>'
+            - 'commit:<EDGE_COMMIT_SHA>'
             - 'env:${edge_env}
   - path: /etc/datadog-agent/conf.d/polygon-edge.d/conf.yaml
     content: |
@@ -60,6 +63,7 @@ write_files:
           source: polygon-edge
           tags:
             - 'version:<EDGE_VERSION>'
+            - 'commit:<EDGE_COMMIT_SHA>'
             - 'env:${edge_env}
 %{ endif }
   - path: /tmp/polygon-edge.sh
@@ -159,7 +163,11 @@ write_files:
         sed -i "s/<EDGE_VERSION>/$(polygon-edge version | grep 'Release version' | awk '{ print $4 }')/g" /etc/datadog-agent/conf.d/openmetrics.d/conf.yaml
         sed -i "s/<EDGE_VERSION>/$(polygon-edge version | grep 'Release version' | awk '{ print $4 }')/g" /etc/datadog-agent/conf.d/polygon-edge.d/conf.yaml
         sed -i "s/<EDGE_VERSION>/$(polygon-edge version | grep 'Release version' | awk '{ print $4 }')/g" /etc/datadog-agent/conf.d/process.d/conf.yaml
-        export DD_HOST_TAGS="service:polygon-edge,env:${edge_env},version:$(polygon-edge version | grep 'Release version' | awk '{ print $4 }')"
+        sed -i "s/<EDGE_COMMIT_SHA>/$(polygon-edge version | grep 'Commit hash' | awk '{ print $4 }')/g" /etc/datadog-agent/conf.d/openmetrics.d/conf.yaml
+        sed -i "s/<EDGE_COMMIT_SHA>/$(polygon-edge version | grep 'Commit hash' | awk '{ print $4 }')/g" /etc/datadog-agent/conf.d/polygon-edge.d/conf.yaml
+        sed -i "s/<EDGE_COMMIT_SHA>/$(polygon-edge version | grep 'Commit hash' | awk '{ print $4 }')/g" /etc/datadog-agent/conf.d/process.d/conf.yaml
+
+        export DD_HOST_TAGS="service:polygon-edge,env:${edge_env}"
         # install datadog agent
         wget -O ddinstall.sh https://s3.amazonaws.com/dd-agent/scripts/install_script.sh
         export DD_API_KEY=$(aws --region ${aws_region} ssm get-parameters --names ${datadog_api_key_ssm_param} --with-decryption --query Parameters[].Value --output text)
